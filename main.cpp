@@ -16,7 +16,15 @@ struct ListNode {
 pair<string, int> ParsingData (const string& data) { //вспомогательная функция для парсинга строки файла
     if (data.size() == 0) return{"", -1};
     int pos_semicolon = data.find_last_of(";");
-    return {data.substr(0, pos_semicolon), stoi(data.substr(pos_semicolon + 1))};
+    if (pos_semicolon == string::npos) return {data, -1};
+    int idx = -1;
+    try {
+        idx = stoi(data.substr(pos_semicolon + 1));
+    } catch (invalid_argument& e) {
+        cerr << e.what();
+    }
+
+    return {data.substr(0, pos_semicolon), idx};
 }
 
 ListNode* DeserializationLinkedList (ifstream& in) {
@@ -58,24 +66,39 @@ void SerializationLinkedList (ofstream& out, ListNode* head) {
     if (!head) return;
     ListNode* current = head;
     unordered_map<ListNode*, int> nodes; //вспомогательный контейнер для сопоставления узлов и их индексов
-    nodes[nullptr] = -1;
-    int idx = 0;
+    int count = 0;
     while (current) {
-        nodes[current] = idx;
+        nodes[current] = count;
         current = current->next;
-        idx++;
+        count++;
+    }
+    out.write(reinterpret_cast<const char*>(&count), sizeof(count));
+    if (!out) {
+        throw std::runtime_error("Ошибка записи");
     }
     current = head;
     while (current) {
-        string line = current->data + ";" + to_string(nodes[current->rand]) + "\n";
-        out.write(line.c_str(), line.size());
+        size_t string_length = current->data.size();
+        out.write(reinterpret_cast<const char*>(&string_length), sizeof(string_length));
+        if (!out) {
+            throw std::runtime_error("Ошибка записи");
+        }
+        out.write(current->data.c_str(), string_length);
+        if (!out) {
+            throw std::runtime_error("Ошибка записи");
+        }
+        int idx = (current->rand) ? nodes[current->rand] : -1;
+        out.write(reinterpret_cast<const char*>(&idx), sizeof(idx));
+        if (!out) {
+            throw std::runtime_error("Ошибка записи");
+        }
         current = current->next;
     }
 }
 
 int main()
 {
-    ifstream in("inlet.in",  ios::binary);
+    ifstream in("inlet.in");
     if (!in.is_open()) {
         cerr << "Ошибка открытия файла для чтения!\n";
         return -1;
