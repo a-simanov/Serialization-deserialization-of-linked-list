@@ -112,5 +112,6 @@ int main()
         return -1;
     }
     SerializationLinkedList(out, list_node);
+    out.close();
     return 0;
 }
